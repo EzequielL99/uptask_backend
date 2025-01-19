@@ -3,7 +3,9 @@ import { body, param } from "express-validator";
 import { ProjectController } from "../controllers/ProjectController";
 import { handleInputErrors } from "../middleware/validation";
 import { TaskController } from "../controllers/TaskController";
-import { validateProjectExists } from "../middleware/project";
+import { projectExists } from "../middleware/project";
+import Task from "../models/Task";
+import { taskBelongsToProject, taskExists } from "../middleware/task";
 
 const router = Router();
 
@@ -60,12 +62,60 @@ router.delete(
 );
 
 // Routes for TASKS
+router.param("projectId", projectExists);
+
 router.post(
   "/:projectId/tasks",
   param("projectId").isMongoId().withMessage("ID no valido"),
   handleInputErrors,
-  validateProjectExists,
   TaskController.createTask
+);
+
+router.get(
+  "/:projectId/tasks",
+  param("projectId").isMongoId().withMessage("ID no valido"),
+  handleInputErrors,
+  TaskController.getProjectTasks
+);
+
+router.param('taskId', taskExists);
+router.param('taskId', taskBelongsToProject);
+
+router.get(
+  "/:projectId/tasks/:taskId",
+  param("projectId").isMongoId().withMessage("ID del proyecto no valido"),
+  param("taskId").isMongoId().withMessage("ID de la tarea no valido"),
+  handleInputErrors,
+  TaskController.getTaskById
+);
+
+router.put(
+  "/:projectId/tasks/:taskId",
+  param("projectId").isMongoId().withMessage("ID del proyecto no valido"),
+  param("taskId").isMongoId().withMessage("ID de la tarea no valido"),
+  body("name").notEmpty().withMessage("El nombre de la tarea es obligatorio."),
+  body("description")
+    .notEmpty()
+    .withMessage("La descripcion de la tarea es obligatoria"),
+  handleInputErrors,
+  TaskController.updateTask
+);
+
+router.delete(
+  "/:projectId/tasks/:taskId",
+  param("projectId").isMongoId().withMessage("ID del proyecto no valido"),
+  param("taskId").isMongoId().withMessage("ID de la tarea no valido"),
+  handleInputErrors,
+  TaskController.deleteTask
+);
+
+router.post(
+  "/:projectId/tasks/:taskId/status",
+  param("projectId").isMongoId().withMessage("ID del proyecto no valido"),
+  param("taskId").isMongoId().withMessage("ID de la tarea no valido"),
+  body("status").notEmpty().withMessage("El estado es obligatorio."),
+  handleInputErrors,
+  TaskController.updateStatus
 );
 
 export default router;
